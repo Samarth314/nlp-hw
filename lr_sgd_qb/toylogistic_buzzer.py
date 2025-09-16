@@ -163,7 +163,21 @@ class ToyLogisticBuzzer(Buzzer):
         
 
 
-
+        if callable(step):
+            learning_rate = step(iteration)
+        else:
+            learning_rate = step
+        
+        prediction = sigmoid(beta.dot(train_example.x))
+        
+        error = train_example.y - prediction
+        
+        gradient = error * train_example.x
+        
+        regularization = mu * beta
+        if mu > 0:
+            regularization[0] = 0  
+        beta = beta + learning_rate * (gradient - regularization)
 
 
 
@@ -178,6 +192,9 @@ class ToyLogisticBuzzer(Buzzer):
         """
 
         beta = self._beta
+        
+        if self._mu > 0 and self._lazy:
+            pass
         return beta
 
     
@@ -196,7 +213,7 @@ class ToyLogisticBuzzer(Buzzer):
             logging.info("Feat %35s %3i: %+0.5f" %
                          (vocab[idx], idx, self._beta[idx]))
     
-    return top, bottom
+        return top, bottom
 
     
     def train(self, train = None, test = None, vocab=None, passes=1):
