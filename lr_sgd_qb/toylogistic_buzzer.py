@@ -167,21 +167,27 @@ class ToyLogisticBuzzer(Buzzer):
             learning_rate = step(iteration)
         else:
             learning_rate = step
-        
-        prediction = sigmoid(beta.dot(train_example.x))
-        
+
+        prediction = sigmoid(self._beta.dot(train_example.x))
         error = train_example.y - prediction
-        
-        gradient = error * train_example.x
-        
-        regularization = mu * beta
-        if mu > 0:
-            regularization[0] = 0  
-        beta = beta + learning_rate * (gradient - regularization)
+
+        for j in train_example.nonzero.keys() | {0}:
+            if mu > 0 and self._lazy:
+                skipped = iteration - self._last_update[j]
+                if skipped > 0:
+                    shrink = (1 - learning_rate * mu) ** skipped
+                    self._beta[j] *= shrink
+
+            grad_j = error * train_example.x[j]
+       
+
+            self._beta[j] += learning_rate * (grad_j)
+
+            self._last_update[j] = iteration
+
+        return self._beta
 
 
-
-        return beta
 
     def finalize_lazy(self, iteration: int) -> np.array:
         """
@@ -191,11 +197,14 @@ class ToyLogisticBuzzer(Buzzer):
         Only implement this function if you do the lazy extra credit.
         """
 
-        beta = self._beta
-        
         if self._mu > 0 and self._lazy:
-            pass
-        return beta
+            for j in range(len(self._beta)):
+                skipped = iteration - self._last_update[j]
+                if skipped > 0:
+                    shrink = (1 - self._step * self._mu) ** skipped
+                    self._beta[j] *= shrink
+                    self._last_update[j] = iteration
+        return self._beta
 
     
     def inspect(self, vocab, limit=5):
@@ -359,3 +368,5 @@ if __name__ == "__main__":
     # Iterations
     update_number = 0
     lr.train(train, test, vocab, args.passes)
+
+    
